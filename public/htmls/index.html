@@ -1,0 +1,467 @@
+<!DOCTYPE>
+
+<html>
+
+	<head>
+
+		<title>Welcome Page</title>
+
+	    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	    <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.3.min.js" ></script>
+	    <script src="http://maps.googleapis.com/maps/api/js"></script> 
+
+	    <!-- Google fonts -->
+	    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+
+		<!-- D3.js -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+
+		<!-- radarChart.js -->
+		<script src="radarChart.js"></script>
+
+	    <style>
+			mark { 
+			    background-color: yellow;
+			    color: black;
+			}
+
+			.radarChart {
+				font-family: 'Open Sans', sans-serif;
+				font-size: 11px;
+				font-weight: 300;
+				fill: #242424;
+				text-align: center;
+				text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff, 0 -1px 0 #fff;
+				cursor: default;
+			}
+			
+			.legend {
+				font-family: 'Raleway', sans-serif;
+				fill: #333333;
+			}
+			
+			.tooltip {
+				fill: #333333;
+			}
+
+			.stars-container {
+				position: relative;
+				display: inline-block;
+				color: transparent;
+			}
+
+			.stars-container:before {
+				position: absolute;
+				top: 0;
+				left: 0;
+				content: '★★★★★';
+				color: lightgray;
+			}
+
+			.stars-container:after {
+				position: absolute;
+				top: 0;
+				left: 0;
+				content: '★★★★★';
+				color: gold;
+				overflow: hidden;
+			}
+
+			.stars-0:after { width: 0%; }
+			.stars-10:after { width: 10%; }
+			.stars-20:after { width: 20%; }
+			.stars-30:after { width: 30%; }
+			.stars-40:after { width: 40%; }
+			.stars-50:after { width: 50%; }
+			.stars-60:after { width: 60%; }
+			.stars-70:after { width: 70%; }
+			.stars-80:after { width: 80%; }
+			.stars-90:after { width: 90%; }
+			.stars-100:after { width: 100; }
+
+		</style>
+
+	</head>
+
+	<body>
+
+			
+		<script>
+
+			var margin = {top: 50, right: 100, bottom: 50, left: 50},
+				width = Math.min(300, window.innerWidth - 10) - margin.left - margin.right,
+				height = Math.min(width, window.innerHeight - margin.top - margin.bottom - 20);
+					
+			var color = d3.scale.ordinal()
+				.range(["#EDC951","#CC333F","#00A0B0"]);
+				
+			var radarChartOptions = {
+			  w: width,
+			  h: height,
+			  margin: margin,
+			  maxValue: 1.0,
+			  levels: 5,
+			  roundStrokes: true,
+			  color: color
+			};
+
+
+			$.fn.stars = function() {
+			    return $(this).each(function() {
+			        // Get the value
+			        var val = parseFloat($(this).html());
+			        // Make sure that the value is in 0 - 5 range, multiply to get width
+			        var size = Math.max(0, (Math.min(5, val))) * 16;
+			        // Create stars holder
+			        var $span = $('<span />').width(size);
+			        // Replace the numerical value with stars
+			        alert($span);
+			        $(this).html($span);
+			    });
+			}
+
+
+			
+
+
+			function map_create(lat, lng)
+			{
+				var myCenter=new google.maps.LatLng(lat,lng);
+				var mapProp = {
+					center:myCenter,
+					zoom:12,
+					mapTypeId:google.maps.MapTypeId.ROADMAP
+				};
+
+				var map=new google.maps.Map(document.getElementById("googleMap"),mapProp);
+				return map;
+			}
+
+			function map_marker_set(lat, lng, map, label) {
+				var marker_center=new google.maps.LatLng(lat,lng);
+				var marker=new google.maps.Marker({
+					position:marker_center,
+					label:label,
+					map: map
+				});
+
+				// console.log(label);
+				// marker.setMap(map);
+			}
+
+
+			function text_highlight(text, word) {
+				var start = 0;
+				var end = 0;
+				var lowerText = text.toLowerCase();
+				if (lowerText.indexOf(word) < 0) return text;
+				start = lowerText.indexOf(word);
+				end = start + word.length;
+
+				var ret = text.substring(0, start);
+				ret += '<mark>' + text.substring(start, end) + '</mark>';
+				ret += text_highlight(text.substring(end), word);
+				return ret;
+			}
+
+			function text_hidify(text, num_of_words, id) {
+				if (text.length <= num_of_words) return text;
+				var ret = text.substring(0, num_of_words);
+
+				ret += '<text class="rev" id=\'' + id + '\'>' + text.substring(num_of_words) + '</text><button class="btn btn-default btn-xs" id="but_' + id + '" onclick=show("'+ id +'")>...</button>';
+				return ret;
+			}
+
+			function show(id) {
+				$('#' + id).show();
+				$('#but_' + id).hide();
+			}
+
+			function count_mark(text) {
+				var count =  text.match(/<mark>/g); 
+				count = count ? count.length : 0; 
+				return count;
+			}
+
+			
+			function search() {
+
+				var input = $('#text_input').val();
+				var zip = $('#zip_input').val();
+				var aspect = $('#aspect_input').val();
+
+				var max_lat = 200;
+				var min_lat = -200;
+				var max_lng = 200;
+				var min_lng = -200;
+
+				$.ajax({
+				    url: 'http://maps.googleapis.com/maps/api/geocode/json?address=' + zip,
+	                dataType: 'json',
+	                type: 'GET',
+				    success:function(data){
+				    	if (data.status == "OK") {
+				    		var bounds = data.results[0].geometry.bounds;
+				    		max_lat = Math.max(bounds.northeast.lat, bounds.southwest.lat);
+				    		min_lat = Math.min(bounds.northeast.lat, bounds.southwest.lat);
+				    		max_lng = Math.max(bounds.northeast.lng, bounds.southwest.lng);
+				    		min_lng = Math.min(bounds.northeast.lng, bounds.southwest.lng);
+				    		
+				    	}
+				    	else alert("Google Map can't find this zip");
+
+				    	var words = input.toLowerCase().split(',');
+						var full_words = [];
+						for (var p=0; p<words.length; p++) {
+							words[p] = words[p].trim();
+							full_words.push(' '+words[p]+' ');
+							full_words.push(' '+words[p]+'.');
+							full_words.push(' '+words[p]+',');
+							full_words.push(' '+words[p]+'s');
+						}
+
+						var query_str = words[0];
+						for (var q=1; q<words.length; q++) {
+							query_str += ' OR ' + words[q]; 
+						}
+
+						
+						var query = {
+							"min_score": 0.17,
+							"query": {
+						        "query_string": {
+						                "fields" : ["reviews.text"],
+						                "query" : query_str,
+						        }     
+						    } ,
+						    "filter" : {
+						    	"bool" : {
+						    		"must" : [
+						    			{
+						    				"range" : {
+									            "longitude" : {
+									            	"from" : min_lng, 
+									            	"to" : max_lng
+			  						            }
+
+									        }
+						    			},
+						    			{
+						    				"range" : {
+									            "latitude" : {
+									            	"from" : min_lat,
+									            	"to" : max_lat
+									            }
+									        }	
+						    			}
+						    		]
+						    	}     
+						    },
+						    "sort" :[
+						    ]
+						};
+
+						
+						// add sorting based in aspect_input
+						if (aspect != "relevance") {
+							var tempJ = {}
+							tempJ[aspect] = "desc";
+							query["sort"][0] = tempJ; 
+						}
+
+
+						// Debug query
+						// alert(JSON.stringify(query));
+
+
+		                $.ajax({
+						    url: 'http://localhost:9200/business/info_review/_search',
+			                dataType: 'json',
+			                type: 'POST',
+			                data: JSON.stringify(query),
+						    success:function(data){
+
+						    	radarChart_ids = [];
+						    	radarChart_values = [];
+
+						    	var map = map_create(0.5*(max_lat+min_lat), 0.5*(max_lng+min_lng));
+
+						    	var content = '';
+
+						    	content += '<div><h3>' + data.hits.total + ' HITs in total!</h3></div><br>';
+
+						    	var data_length = data.hits.hits.length;
+
+						    	for (var i=0; i<data.hits.hits.length; i++) { // each restaurant
+						    		var source = data.hits.hits[i]._source;
+						    		var score = data.hits.hits[i]._score;
+						    		var name = source.name;
+						    		var city = source.city;
+						    		var state = source.state;
+						    		var id = source.business_id;
+						    		var reviews = source.reviews;
+
+						    		var service = source.service;
+						    		var food = source.food;
+						    		var environment = source.environment;
+						    		var price = source.value;
+						    		var overall = source.overall;
+						    		var address = source.full_address;
+
+
+						    		var render_data = [service, food, environment, price];
+						    		radarChart_values.push(render_data);
+
+
+
+						    		// map debug
+						    		var longitude = source.longitude;
+						    		var latitude = source.latitude;
+
+
+						    		map_marker_set(latitude, longitude, map, (i+1).toString());
+
+
+
+						    		content += '<br><br><div class="row"><div class="col-xs-8 col-md-7"><h4>' + name + '</h4><text class="stars-container stars-' + Math.floor(overall/5.0*10)*10 + '">★★★★★</text><text style="font-weight:bold">  ' + reviews.length + ' reviews</text><h5>' + address + '</h5></div>';
+
+						    		content += '<div class="col-xs-4 col-md-5"><div class="radarChart_' + id + '"></div></div></div><br><h5>Reviews</h5>';
+
+						    		radarChart_ids.push('radarChart_' + id);
+
+
+
+						    		mark_count_dict = {};
+
+						    		for (var j=0; j<reviews.length; j++) { // each review
+						    			var text = reviews[j].text;
+
+						    			// text processing
+						    			var temp_id = id + '_' + j; 
+						    			text = text_hidify(text, 500, temp_id);
+						    			for (var k=0; k<full_words.length; k++) {
+						    				text = text_highlight(text, full_words[k]);	
+						    			}
+
+						    			// push high frequency reviews to the head
+						    			var count = count_mark(text)*1000;
+
+						    			if (!(count in mark_count_dict)) mark_count_dict[count] = text;	
+						    			else {
+						    				while (count in mark_count_dict) count = count + 1;
+											mark_count_dict[count] = text;	
+						    			}				    			
+						    		}
+
+
+						    		//sorting according to frequency of marks
+									var keys = Object.keys(mark_count_dict).sort(function(a, b){return b-a});
+
+
+									var excess_reviews_flag = 0;
+						    		for (var j=0; j<keys.length; j++) {
+						    			if (j == 4) { // hide reviews with id >= 5
+						    				content += '<button class="btn btn-default btn-xs" id="but_' + id + '" onclick=show("'+ id +'")>More reviews</button><text class="rev" id="' + id + '">';
+						    				excess_reviews_flag = 1;
+						    			}
+						    			content += '<div><text style="font-weight:bold">' + (j+1) + '.</text> ' + mark_count_dict[keys[j]] + '</div>';
+						    		}
+						    		if (excess_reviews_flag == 1) content += '</text>';
+						    		
+						    	}
+
+						        document.getElementById('result').innerHTML = content;
+
+						        $('.rev').hide(); // with all long reviews half-hidden 
+
+
+						        for (var l=0; l<data_length; l++) {
+
+						        	var plot_data = [
+										[
+											{axis:"Service",value:radarChart_values[l][0]/5.0},
+											{axis:"Food",value:radarChart_values[l][1]/5.0},
+											{axis:"Environment",value:radarChart_values[l][2]/5.0},
+											{axis:"Price",value:radarChart_values[l][3]/5.0},
+										]
+									];
+						        	RadarChart('.' + radarChart_ids[l], plot_data, radarChartOptions);
+						        }
+
+
+						        $(function() {
+								    $('span.stars').stars();
+								});
+						    
+
+						   
+
+						    },
+						    error:function(){
+						         alert("Error");
+						    }      
+						});
+
+				    },
+				    error:function(){
+				         alert("Google Map API Failed");
+				    }
+				});
+	
+			}
+		</script>
+
+		<br>
+		<br>
+		<center><h1>Find i Restaurant</h1></center>
+
+		<br>
+		<br>
+		<br>
+		<br>
+
+		<div class="row">
+			<div class="col-xs-2 col-md-1 col-md-offset-2">
+				<input id="zip_input" type="text" class="form-control" placeholder="Zip code">
+			</div>
+			<div class="col-xs-6 col-md-6">
+				<div class="input-group">
+					<span class="input-group-btn">
+						<button onclick="search()" class="btn btn-default" type="button">Find it</button>
+					</span>
+					<input id="text_input" type="text" class="form-control" placeholder="Search for...">
+				</div>
+			</div>
+			<div class="col-xs-1 col-md-1">
+				<select id="aspect_input" class="form-control">
+					<option value="relevance">Sort by ..</option>
+					<option value="service">Service</option>
+					<option value="food">Food</option>
+					<option value="environment">Environment</option>
+					<option value="value">Price</option>
+					<option value="overall">Overall</option>
+				</select>
+			</div>
+		</div>
+
+		<br>
+		<br>
+
+		<div class="row">
+		<div id="result" class="col-md-6 col-md-offset-2"></div>
+		<div class="col-md-offset-8">
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<div id="googleMap" style="width:450px;height:340px;">
+		</div>
+		</div>
+
+	</body>
+
+</html>
+
+
