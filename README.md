@@ -1,3 +1,7 @@
+
+One way of running the app: 
+
+0. You'll need node.js and npm installed.
 1. npm install https://github.com/lokhandeomkar/findirestaurant/tarball/master
 2. change to /usr/local/lib/node_modules/myapp
 3. DEBUG=myapp:* npm start
