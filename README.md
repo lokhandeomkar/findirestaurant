@@ -1,7 +1,7 @@
 1. npm install https://github.com/lokhandeomkar/findirestaurant/tarball/master
 2. change to /usr/local/lib/node_modules/myapp
 3. DEBUG=myapp:* npm start
-
+4. load http://localhost:3000/ in your browser to access the app
 
 
 
