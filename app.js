@@ -1,9 +1,10 @@
 var express = require('express');
 var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+var favicon = require('serve-favicon'); // favicon is a visual cue that a client, like browsers, use to identify a site
+var logger = require('morgan'); // HTTP request logger middleware
+// Parse Cookie header and populate req.cookies with an object keyed by the cookie names
+var cookieParser = require('cookie-parser'); 
+var bodyParser = require('body-parser'); // Parse incoming request bodies in a middleware before your handlers
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
@@ -11,7 +12,6 @@ var rc = require('./routes/rc');
 var stars = require('./routes/stars');
 
 var app = express();
-
 // view engine setup
 app.set('views', path.join(__dirname, 'views')); // views, the directory where the template files are located
 app.set('view engine', 'jade'); // to use the jade template engine
@@ -37,7 +37,6 @@ app.use(function(req, res, next) {
 });
 
 // error handlers
-
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
