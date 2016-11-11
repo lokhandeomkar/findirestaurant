@@ -3,7 +3,7 @@ One way of running the app:
 
 0. You'll need node.js and npm installed.
 1. npm install https://github.com/lokhandeomkar/findirestaurant/tarball/master
-2. change to /usr/local/lib/node_modules/myapp
+2. change directory to /usr/local/lib/node_modules/myapp
 3. DEBUG=myapp:* npm start
 4. load http://localhost:3000/ in your browser to access the app
 
